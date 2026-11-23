@@ -12,4 +12,4 @@ An app is a folder you own: its source, its data, and its previous versions. Cop
 
 Download `Vibed.exe` (Windows, unsigned) from [releases](../../releases).
 
-MIT. No account, no cloud, no analytics.
+MIT.
