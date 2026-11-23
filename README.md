@@ -98,6 +98,13 @@ Vibed checks `frazik-main/.vibed` releases once at startup. The sidebar footer h
 
 This is not auto-update: `npm run dist` produces a **portable** exe and electron-updater cannot replace a portable build in place. Auto-update would mean switching to the NSIS target and signing the installer. The check only opens a page; it never downloads or installs anything.
 
+## Network
+
+- On startup, Vibed makes a one-word model test and one GitHub request for the latest release.
+- Creating or changing an app sends the prompt and the current app source to the selected provider: OpenRouter, OpenAI, DeepSeek, or a local OpenCode install. With a key, the request goes straight from the main process; the key never enters the renderer or an app.
+- There are no accounts, no analytics, and no telemetry. Logs stay on this machine.
+- Generated apps have no network access (`connect-src 'none'`). Running an app needs no model and no connection.
+
 ## Using it
 
 1. Open **Model settings** and paste an OpenRouter key, or choose OpenCode if you have its CLI. **Check again** re-probes for the CLI. If you do not have a key, **How do I set this up?** walks you through getting one.
