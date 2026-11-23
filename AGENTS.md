@@ -1,6 +1,6 @@
 # Project instructions
 
-- This is an early product prototype. Keep README and docs honest about what exists versus what is planned.
+- This is an early product prototype. Keep README to the idea, not a feature manual.
 - The product is one mutable app: a shell that starts as a blank canvas, becomes a personal app from a description, and stays changeable forever.
 - An app is a folder: `app.json`, `source/`, `data/`, `previous/`. It must remain copyable, zippable, and runnable without an account, a server, or a network connection.
 - A packaged app file is the shell plus one app folder behind a self-extracting footer. It must keep the source and intent so the recipient can change the app.
