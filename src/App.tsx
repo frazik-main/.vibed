@@ -147,6 +147,7 @@ export default function App() {
   const toastTimer = useRef<number | undefined>(undefined)
   const progressLog = useRef<HTMLOListElement | null>(null)
   const logList = useRef<HTMLDivElement | null>(null)
+  const autoChecked = useRef(false)
 
   const notify = useCallback((message: string) => {
     setToast(message)
@@ -300,6 +301,13 @@ export default function App() {
     if (!logsOpen) return
     logList.current?.scrollTo({ top: logList.current.scrollHeight })
   }, [logEntries, logsOpen])
+
+  useEffect(() => {
+    if (!ready || autoChecked.current || !window.vibed) return
+    autoChecked.current = true
+    const timer = window.setTimeout(() => void checkForUpdates({ silent: true }), 1500)
+    return () => window.clearTimeout(timer)
+  }, [ready])
 
   useEffect(() => {
     if (!busy) return
@@ -531,7 +539,27 @@ export default function App() {
     }
   }
 
-  async function checkForUpdates() {
+  async function checkForUpdates({ silent = false } = {}) {
+    const bridge = window.vibed
+    if (!bridge) return
+
+    setUpdate({ checking: true })
+    try {
+      const result = await unwrap(bridge.checkForUpdate())
+      if (result.available) {
+        setUpdate({ checking: false, latest: result.latest, url: result.url })
+        if (!silent) notify(`v${result.latest} is available.`)
+      } else {
+        setUpdate(null)
+        if (!silent) notify(`This is the latest version (${result.current}).`)
+      }
+    } catch (error) {
+      setUpdate(null)
+      if (!silent) notify(messageOf(error))
+    }
+  }
+
+  async function handleUpdateClick() {
     const bridge = window.vibed
     if (!bridge) return
 
@@ -544,20 +572,7 @@ export default function App() {
       return
     }
 
-    setUpdate({ checking: true })
-    try {
-      const result = await unwrap(bridge.checkForUpdate())
-      if (result.available) {
-        setUpdate({ checking: false, latest: result.latest, url: result.url })
-        notify(`v${result.latest} is available.`)
-      } else {
-        setUpdate(null)
-        notify(`This is the latest version (${result.current}).`)
-      }
-    } catch (error) {
-      setUpdate(null)
-      notify(messageOf(error))
-    }
+    await checkForUpdates()
   }
 
   async function saveSettings() {
@@ -655,17 +670,24 @@ export default function App() {
                       ? config.model
                       : 'No model'}
             </span>
+            <button
+              className={`update-button${update?.latest ? ' available' : ''}`}
+              onClick={() => void handleUpdateClick()}
+              disabled={update?.checking}
+              title={
+                update?.latest
+                  ? `Open the v${update.latest} release`
+                  : 'Check GitHub for a newer version'
+              }
+            >
+              {update?.checking
+                ? 'Checking for updates…'
+                : update?.latest
+                  ? `Update to v${update.latest}`
+                  : 'Check for updates'}
+            </button>
             <div className="foot-links">
-              <button
-                className={`version-link${update?.latest ? ' update' : ''}`}
-                onClick={checkForUpdates}
-              >
-                {update?.checking
-                  ? 'Checking…'
-                  : update?.latest
-                    ? `Update v${update.latest}`
-                    : `v${config.version || '0.0.0'}`}
-              </button>
+              <span className="version-text">v{config.version || '0.0.0'}</span>
               <button className="version-link" onClick={() => void openLogs()}>
                 Logs
               </button>

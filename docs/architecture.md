@@ -92,7 +92,7 @@ The main process keeps the last 400 entries in memory, appends them to `vibed.lo
 
 ## Updates
 
-The update check is a single unauthenticated request to the GitHub releases API, made only when the user clicks the version in the sidebar. It compares tags with `core.compareVersions` and, on a newer one, offers the release page. It cannot install anything: the build target is `portable`, which electron-updater does not support. The exported single-file apps carry their own copy of the shell and do not update with it.
+The update check is a single unauthenticated request to the GitHub releases API, made once at startup and whenever the user clicks **Check for updates**. It compares tags with `core.compareVersions` and, on a newer one, turns the button into the release page link. It cannot install anything: the build target is `portable`, which electron-updater does not support. The exported single-file apps carry their own copy of the shell and do not update with it.
 
 The model is treated as an untrusted code generator:
 

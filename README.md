@@ -94,9 +94,9 @@ That writes `release\Vibed.exe`, a single portable file. Run that copy and **Mak
 
 ## Updates
 
-The sidebar footer shows the current version. Click it to check `frazik-main/.vibed` releases; when a newer tag exists it turns into **Update vX.Y.Z** and opens the release page.
+Vibed checks `frazik-main/.vibed` releases once at startup. The sidebar footer has a **Check for updates** button; when a newer tag exists it becomes **Update to vX.Y.Z** and opens the release page. The same button runs the check again when no update is waiting.
 
-This is a manual check, not auto-update, because `npm run dist` produces a **portable** exe and electron-updater cannot replace a portable build in place. Auto-update would mean switching to the NSIS target and signing the installer. The repo is private today, so the check reports *"no public release to compare against yet"* until it is public.
+This is not auto-update: `npm run dist` produces a **portable** exe and electron-updater cannot replace a portable build in place. Auto-update would mean switching to the NSIS target and signing the installer. The check only opens a page; it never downloads or installs anything.
 
 ## Using it
 
@@ -118,6 +118,7 @@ This is the MVP described in this repo, not the finished product.
 - Create an app from a written description.
 - A live stage log and a **Cancel** button while an app is being created or changed. Cancelling keeps your prompt and changes nothing.
 - A **Logs** view in the sidebar footer with recent model calls, connection errors, and the path to `vibed.log`.
+- An update check at startup, with a **Check for updates** / **Update to vX.Y.Z** button in the sidebar footer.
 - Change an app by describing the change. The previous source is kept in `previous/`.
 - App data is saved to `data/data.json` and restored on open.
 - Full screen for the running app, from a button in the shell. Exported apps start full screen with an **Update app** bubble in the bottom-right that opens the change dialog.
