@@ -106,6 +106,7 @@ This is a manual check, not auto-update, because `npm run dist` produces a **por
 4. The ⛶ button goes full screen. In full screen, an **Update app** bubble sits in the bottom-right; click it to leave full screen and open the change dialog. F11 toggles full screen from inside the app. Exported apps start in full screen.
 5. **Make app file** writes the app out; **Open app file** brings an exported app back in.
 6. **Escape** leaves full screen, including when pressed inside the app frame.
+7. **Logs** in the sidebar footer shows recent calls and errors; **Open file** opens `vibed.log`.
 
 ---
 
@@ -116,6 +117,7 @@ This is the MVP described in this repo, not the finished product.
 - A desktop shell with a canvas, an app list, and an isolated app frame.
 - Create an app from a written description.
 - A live stage log and a **Cancel** button while an app is being created or changed. Cancelling keeps your prompt and changes nothing.
+- A **Logs** view in the sidebar footer with recent model calls, connection errors, and the path to `vibed.log`.
 - Change an app by describing the change. The previous source is kept in `previous/`.
 - App data is saved to `data/data.json` and restored on open.
 - Full screen for the running app, from a button in the shell. Exported apps start full screen with an **Update app** bubble in the bottom-right that opens the change dialog.

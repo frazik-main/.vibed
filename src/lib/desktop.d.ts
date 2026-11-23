@@ -35,6 +35,17 @@ export interface UpdateCheck {
   available: boolean
 }
 
+export interface LogEntry {
+  at: string
+  level: string
+  message: string
+}
+
+export interface LogList {
+  entries: LogEntry[]
+  file: string
+}
+
 export interface ProviderPreset {
   id: string
   label: string
@@ -79,6 +90,10 @@ export interface VibedBridge {
   onFullscreenChanged(callback: (value: boolean) => void): () => void
   cancel(): Promise<Result<boolean>>
   onProgress(callback: (line: string) => void): () => void
+  getLogs(): Promise<Result<LogList>>
+  clearLogs(): Promise<Result<boolean>>
+  openLogs(): Promise<Result<string>>
+  onLog(callback: (entry: LogEntry) => void): () => void
   probeOpencode(): Promise<Result<OpencodeStatus>>
   setFullscreen(value: boolean): Promise<Result<boolean>>
   portableApp(): Promise<Result<string | null>>

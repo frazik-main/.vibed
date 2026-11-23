@@ -25,6 +25,37 @@ const LIBRARIES = {
 let portableAppId = null
 let activeJob = null
 
+const LOG_LIMIT = 400
+const logEntries = []
+
+function logFilePath() {
+  return path.join(app.getPath('userData'), 'vibed.log')
+}
+
+function log(level, message) {
+  const entry = { at: new Date().toISOString(), level, message: String(message) }
+  logEntries.push(entry)
+  if (logEntries.length > LOG_LIMIT) logEntries.splice(0, logEntries.length - LOG_LIMIT)
+
+  try {
+    const file = logFilePath()
+    fsSync.mkdirSync(path.dirname(file), { recursive: true })
+    fsSync.appendFileSync(
+      file,
+      `${entry.at} ${entry.level.toUpperCase()} ${entry.message}\n`,
+      'utf8',
+    )
+    if (fsSync.statSync(file).size > 1_000_000) fsSync.writeFileSync(file, '')
+  } catch {
+    // A log must never break the app.
+  }
+
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.webContents.isDestroyed()) window.webContents.send('vibed:log', entry)
+  }
+  if (level === 'error') console.error(`[vibed] ${entry.message}`)
+}
+
 protocol.registerSchemesAsPrivileged([
   {
     scheme: APP_SCHEME,
@@ -186,6 +217,7 @@ async function callModel(messages, job) {
   }
 
   const endpoint = `${config.baseUrl.replace(/\/+$/, '')}/chat/completions`
+  log('info', `Model call: ${config.provider} ${config.model}`)
   let response
   try {
     response = await fetch(endpoint, {
@@ -198,9 +230,14 @@ async function callModel(messages, job) {
       signal: job?.controller.signal,
     })
   } catch (error) {
-    if (job?.cancelled || error?.name === 'AbortError') throw cancelledError()
+    if (job?.cancelled || error?.name === 'AbortError') {
+      log('info', 'Model call cancelled')
+      throw cancelledError()
+    }
+    log('error', `Model connection failed: ${error?.message || error}`)
     throw new Error('Could not reach the model. Check the base URL and your connection.')
   }
+  log('info', `Model response ${response.status}`)
 
   if (!response.ok) {
     let detail = ''
@@ -237,6 +274,7 @@ async function testModel() {
   const probe = await generator.probeOpencode()
 
   if (config.provider === 'opencode' && probe.available) {
+    log('info', `Model test OK: local OpenCode ${probe.version}`)
     return {
       via: 'opencode',
       model: config.cliModel,
@@ -269,6 +307,7 @@ async function testModel() {
       signal: controller.signal,
     })
   } catch (error) {
+    log('error', `Model test connection failed: ${error?.message || error}`)
     throw new Error(
       error?.name === 'AbortError'
         ? 'No answer within 20 seconds. Check the base URL and the key.'
@@ -299,6 +338,7 @@ async function testModel() {
     throw new Error('The model answered, but not with a chat completion. Check the base URL.')
   }
 
+  log('info', `Model test OK: ${label} ${config.model}`)
   return { via: 'key', model: config.model, detail: label }
 }
 
@@ -317,7 +357,8 @@ async function checkForUpdate() {
       },
       signal: controller.signal,
     })
-  } catch {
+  } catch (error) {
+    log('error', `Update check failed: ${error?.message || error}`)
     throw new Error('Could not reach GitHub. Check your connection.')
   } finally {
     clearTimeout(timer)
@@ -333,6 +374,7 @@ async function checkForUpdate() {
   const release = await response.json()
   const latest = String(release?.tag_name || '').replace(/^v/i, '')
   if (!latest) throw new Error('The latest release has no version tag.')
+  log('info', `Update check: current ${current}, latest ${latest}`)
   return {
     current,
     latest,
@@ -503,7 +545,9 @@ function cancelledError() {
 
 function makeProgress(sender) {
   return (text) => {
-    if (!sender.isDestroyed()) sender.send('vibed:progress', String(text))
+    const line = String(text)
+    if (!line.startsWith('Still working')) log('info', line)
+    if (!sender.isDestroyed()) sender.send('vibed:progress', line)
   }
 }
 
@@ -598,6 +642,7 @@ async function createApp(input, job, progress = () => {}) {
   await writeSource(id, files)
   await writeMeta(id, meta)
   await fs.writeFile(dataFile(id), '{}\n', 'utf8')
+  log('info', `Created app: ${name}`)
 
   return { meta, files, via }
 }
@@ -618,6 +663,7 @@ async function reviseApp(id, instruction, job, progress = () => {}) {
 
   const next = { ...meta, version: meta.version + 1, updatedAt: new Date().toISOString() }
   await writeMeta(id, next)
+  log('info', `Changed app: ${meta.name} v${next.version}`)
   return { meta: next, files, via }
 }
 
@@ -776,10 +822,12 @@ async function exportApp(id) {
   if (basePath) {
     const base = await fs.readFile(basePath)
     await fs.writeFile(filePath, core.buildContainer(base, payload))
+    log('info', `Exported ${meta.name} to ${filePath}`)
     return { cancelled: false, message: `Saved ${filePath}` }
   }
 
   await fs.writeFile(filePath, payload)
+  log('info', `Exported ${meta.name} to ${filePath}`)
   return {
     cancelled: false,
     message: `Saved ${filePath}. In the packaged build this button writes a single .exe.`,
@@ -950,7 +998,9 @@ function handle(channel, fn) {
     try {
       return { ok: true, value: await fn(event, ...args) }
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : String(error) }
+      const message = error instanceof Error ? error.message : String(error)
+      log(message === 'Cancelled.' ? 'info' : 'error', `${channel}: ${message}`)
+      return { ok: false, error: message }
     }
   })
 }
@@ -1017,6 +1067,26 @@ handle('vibed:open:external', (_event, url) => {
   }
   return shell.openExternal(parsed.toString())
 })
+handle('vibed:logs:list', () => ({ entries: logEntries.slice(), file: logFilePath() }))
+handle('vibed:logs:clear', () => {
+  logEntries.length = 0
+  try {
+    fsSync.writeFileSync(logFilePath(), '')
+  } catch {
+    // The file may not exist yet.
+  }
+  log('info', 'Logs cleared')
+  return true
+})
+handle('vibed:logs:open', async () => {
+  const file = logFilePath()
+  try {
+    fsSync.writeFileSync(file, '', { flag: 'a' })
+  } catch {
+    // The folder is created by the first log line.
+  }
+  return shell.openPath(file)
+})
 handle('vibed:opencode:probe', () => generator.probeOpencode({ refresh: true }))
 handle('vibed:config:set', async (_event, next) => {
   await writeConfig(next)
@@ -1041,6 +1111,7 @@ app.whenReady().then(async () => {
   installAppProtocol()
   installLibraryProtocol()
   portableAppId = await preparePortable().catch(() => null)
+  log('info', `Vibed ${app.getVersion()} started`)
   createWindow()
 
   app.on('activate', () => {

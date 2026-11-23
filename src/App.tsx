@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AppMeta, AppRecord, ModelConfig, ProviderPreset, Result } from './lib/desktop'
+import type {
+  AppMeta,
+  AppRecord,
+  LogEntry,
+  ModelConfig,
+  ProviderPreset,
+  Result,
+} from './lib/desktop'
 
 async function unwrap<T>(promise: Promise<Result<T>>): Promise<T> {
   const result = await promise
@@ -99,6 +106,9 @@ export default function App() {
   const [editing, setEditing] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [logsOpen, setLogsOpen] = useState(false)
+  const [logEntries, setLogEntries] = useState<LogEntry[]>([])
+  const [logFile, setLogFile] = useState('')
   const [providers, setProviders] = useState<ProviderPreset[]>([])
   const [settings, setSettings] = useState({
     provider: 'openrouter',
@@ -136,6 +146,7 @@ export default function App() {
 
   const toastTimer = useRef<number | undefined>(undefined)
   const progressLog = useRef<HTMLOListElement | null>(null)
+  const logList = useRef<HTMLDivElement | null>(null)
 
   const notify = useCallback((message: string) => {
     setToast(message)
@@ -168,6 +179,45 @@ export default function App() {
       notify(messageOf(error))
       setCancelling(false)
     }
+  }
+
+  async function openLogs() {
+    const bridge = window.vibed
+    setLogsOpen(true)
+    if (!bridge) return
+    try {
+      const data = await unwrap(bridge.getLogs())
+      setLogEntries(data.entries)
+      setLogFile(data.file)
+    } catch (error) {
+      notify(messageOf(error))
+    }
+  }
+
+  async function clearLogs() {
+    const bridge = window.vibed
+    if (!bridge) return
+    setLogEntries([])
+    try {
+      await unwrap(bridge.clearLogs())
+    } catch (error) {
+      notify(messageOf(error))
+    }
+  }
+
+  async function openLogFile() {
+    const bridge = window.vibed
+    if (!bridge) return
+    try {
+      await unwrap(bridge.openLogs())
+    } catch (error) {
+      notify(messageOf(error))
+    }
+  }
+
+  function formatLogTime(value: string) {
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleTimeString([], { hour12: false })
   }
 
   useEffect(() => {
@@ -237,6 +287,19 @@ export default function App() {
       setProgress((lines) => [...lines.slice(-199), line])
     })
   }, [])
+
+  useEffect(() => {
+    const bridge = window.vibed
+    if (!bridge) return
+    return bridge.onLog((entry) => {
+      setLogEntries((entries) => [...entries.slice(-399), entry])
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!logsOpen) return
+    logList.current?.scrollTo({ top: logList.current.scrollHeight })
+  }, [logEntries, logsOpen])
 
   useEffect(() => {
     if (!busy) return
@@ -592,16 +655,21 @@ export default function App() {
                       ? config.model
                       : 'No model'}
             </span>
-            <button
-              className={`version-link${update?.latest ? ' update' : ''}`}
-              onClick={checkForUpdates}
-            >
-              {update?.checking
-                ? 'Checking…'
-                : update?.latest
-                  ? `Update v${update.latest}`
-                  : `v${config.version || '0.0.0'}`}
-            </button>
+            <div className="foot-links">
+              <button
+                className={`version-link${update?.latest ? ' update' : ''}`}
+                onClick={checkForUpdates}
+              >
+                {update?.checking
+                  ? 'Checking…'
+                  : update?.latest
+                    ? `Update v${update.latest}`
+                    : `v${config.version || '0.0.0'}`}
+              </button>
+              <button className="version-link" onClick={() => void openLogs()}>
+                Logs
+              </button>
+            </div>
           </div>
         </aside>
 
@@ -865,6 +933,47 @@ export default function App() {
                 }}
               >
                 Model settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {logsOpen && (
+        <div
+          className="overlay"
+          role="presentation"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setLogsOpen(false)
+          }}
+        >
+          <div className="dialog log-dialog" role="dialog" aria-modal="true" aria-label="Logs">
+            <h2>Logs</h2>
+            <div className="log-list" ref={logList}>
+              {logEntries.length === 0 ? (
+                <p className="hint">No log entries yet.</p>
+              ) : (
+                logEntries.map((entry, index) => (
+                  <div className={`log-entry ${entry.level}`} key={`${entry.at}-${index}`}>
+                    <span className="log-time">{formatLogTime(entry.at)}</span>
+                    <span className="log-level">{entry.level}</span>
+                    <span className="log-message">{entry.message}</span>
+                  </div>
+                ))
+              )}
+            </div>
+            <p className="hint log-file">
+              {logFile || 'The log file is created with the first entry.'}
+            </p>
+            <div className="dialog-actions">
+              <button className="ghost-button" onClick={() => void openLogFile()}>
+                Open file
+              </button>
+              <button className="ghost-button" onClick={() => void clearLogs()}>
+                Clear
+              </button>
+              <button className="primary" onClick={() => setLogsOpen(false)}>
+                Close
               </button>
             </div>
           </div>

@@ -260,6 +260,18 @@ textarea:focus-visible {
   color: var(--accent);
 }
 
+.foot-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.foot-links .version-link {
+  align-self: auto;
+  padding: 0 6px;
+}
+
 .test-result {
   display: flex;
   align-items: flex-start;
@@ -447,6 +459,72 @@ input::placeholder {
 
 .help-steps li::marker {
   color: var(--accent);
+}
+
+.log-dialog {
+  width: min(100%, 760px);
+}
+
+.log-list {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #0d0d10;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.log-entry {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  border-bottom: 1px solid #1a1a20;
+}
+
+.log-entry:last-child {
+  border-bottom: 0;
+}
+
+.log-time {
+  flex: none;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.log-level {
+  flex: none;
+  width: 42px;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.log-entry.error .log-level {
+  color: var(--bad);
+}
+
+.log-entry.info .log-level {
+  color: var(--good);
+}
+
+.log-message {
+  min-width: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.log-entry.error .log-message {
+  color: #ffb4ae;
+}
+
+.log-file {
+  margin: 12px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 10.5px;
 }
 
 .topbar {

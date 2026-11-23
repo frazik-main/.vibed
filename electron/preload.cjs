@@ -28,6 +28,14 @@ contextBridge.exposeInMainWorld('vibed', {
     ipcRenderer.on('vibed:progress', listener)
     return () => ipcRenderer.removeListener('vibed:progress', listener)
   },
+  getLogs: () => call('vibed:logs:list'),
+  clearLogs: () => call('vibed:logs:clear'),
+  openLogs: () => call('vibed:logs:open'),
+  onLog: (callback) => {
+    const listener = (_event, entry) => callback(entry)
+    ipcRenderer.on('vibed:log', listener)
+    return () => ipcRenderer.removeListener('vibed:log', listener)
+  },
   probeOpencode: () => call('vibed:opencode:probe'),
   portableApp: () => call('vibed:portable'),
   setFullscreen: (value) => call('vibed:fullscreen', value),

@@ -86,6 +86,10 @@ Provider error codes are mapped to plain messages: 401 key, 402 credit, 404 mode
 
 One generation runs at a time. The main process streams stage lines to the renderer over `vibed:progress`, and `vibed:cancel` aborts the current request or kills the local OpenCode process tree. A cancelled job writes nothing: the last good source, `previous/`, and `data/data.json` stay untouched. The prompt stays in the input so the same request can be started again.
 
+## Logs
+
+The main process keeps the last 400 entries in memory, appends them to `vibed.log` in `userData` (truncated at 1 MB), and streams them to the renderer. Entries cover model calls, HTTP status, connection failures, generation stages, imports, exports, and update checks. Prompts, app source, keys, and request bodies are never logged. The **Logs** view in the sidebar footer shows the current session and can open or clear the file.
+
 ## Updates
 
 The update check is a single unauthenticated request to the GitHub releases API, made only when the user clicks the version in the sidebar. It compares tags with `core.compareVersions` and, on a newer one, offers the release page. It cannot install anything: the build target is `portable`, which electron-updater does not support. The exported single-file apps carry their own copy of the shell and do not update with it.
