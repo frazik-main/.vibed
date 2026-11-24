@@ -8,6 +8,8 @@ Recursively changeable apps: the output of a change is still a first-class app, 
 
 An app is a folder you own: its source, its data, and its previous versions. Copy it, zip it, back it up, or send it as one file. The source always travels with the app.
 
+Sharing is the same loop. Send the app to a friend as one file; they can run it, change it, and send it back or pass it on. Every copy stays editable.
+
 ![Vibed demo](assets/vibed-demo.gif)
 
 Download `Vibed.exe` (Windows, unsigned) from [releases](../../releases).
